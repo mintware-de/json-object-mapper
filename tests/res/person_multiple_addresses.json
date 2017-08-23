@@ -1,0 +1,16 @@
+{
+    "addresses": [
+        {
+            "street": "Mainstreet 22a",
+            "zip_code": "A-12345",
+            "town": "Best Town",
+            "country": "Germany"
+        },
+        {
+            "street": "Otherstreet #1",
+            "zip_code": "A-54321",
+            "town": "Great Town",
+            "country": "Austria"
+        }
+    ]
+}

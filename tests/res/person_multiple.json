@@ -1,0 +1,16 @@
+[
+    {
+        "firstname": "Pete",
+        "surname": "Peterson",
+        "age": 28,
+        "height": 1.72,
+        "is_cool": false
+    },
+    {
+        "firstname": "Anna",
+        "surname": "Anderson",
+        "age": 25,
+        "height": 1.63,
+        "is_cool": true
+    }
+]
