@@ -41,6 +41,24 @@ class Person
     /** @MintWare\JOM\JsonField(name="address", type="MintWare\Tests\JOM\Objects\Address") */
     public $address;
 
+    /**
+     * @var \DateTime
+     * @MintWare\JOM\JsonField(name="created", type="datetime")
+     */
+    public $created;
+
+    /**
+     * @var \DateTime
+     * @MintWare\JOM\JsonField(name="updated", type="date")
+     */
+    public $updated;
+
+    /**
+     * @var \DateTime
+     * @MintWare\JOM\JsonField(name="deleted", type="datetime")
+     */
+    public $deleted;
+
     /** @var int */
     public $unmappedField = 12 * 3;
 

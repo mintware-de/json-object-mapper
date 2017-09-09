@@ -175,6 +175,37 @@ class ObjectMapper
                         }
                         $val = (object)$data[$field->name];
                         break;
+                    case 'date':
+                    case 'datetime':
+                        // Accepts the following formats:
+                        // 2017-09-09
+                        // 2017-09-09 13:20:59
+                        // 2017-09-09T13:20:59
+                        // 2017-09-09T13:20:59.511Z
+                        // 2017-09-09T13:20:59-02:00
+                        $validPattern = '~^\d{4}-\d{2}-\d{2}((T|\s{1})\d{2}:\d{2}:\d{2}(\.\d{3}Z|(\+|\-)\d{2}:\d{2}|)|)$~';
+
+                        $tmpVal = $data[$field->name];
+                        if (preg_match($validPattern, $tmpVal)) {
+                            $data[$field->name] = new \DateTime($tmpVal);
+                        } else {
+                            $casted = intval($tmpVal);
+                            if (is_numeric($tmpVal) || ($casted == $tmpVal && strlen($casted) == strlen($tmpVal))) {
+                                $data[$field->name] = new \DateTime();
+                                $data[$field->name]->setTimestamp($tmpVal);
+                            }
+                        }
+
+                        if ($data[$field->name] instanceof \DateTime === false) {
+                            throw new TypeMismatchException($field->type, gettype($data[$field->name]));
+                        }
+
+                        if (strtolower($field->type) == 'date') {
+                            $data[$field->name]->setTime(0, 0, 0);
+                        }
+
+                        $val = $data[$field->name];
+                        break;
                     default:
                         // If none of the primitives above match it is an custom object
 

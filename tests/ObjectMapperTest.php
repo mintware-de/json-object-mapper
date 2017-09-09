@@ -101,6 +101,14 @@ class ObjectMapperTest extends TestCase
         $mapper->mapDataToObject(['dictionary' => false], Person::class);
     }
 
+    public function testMapDataToObjectFailsTypeMismatchDatetime()
+    {
+        $mapper = new ObjectMapper();
+        $this->expectException(TypeMismatchException::class);
+        $this->expectExceptionMessage('Wrong Type. Expected datetime got string');
+        $mapper->mapDataToObject(['created' => "Hello World"], Person::class);
+    }
+
     public function testMapDataToObject()
     {
         $mapper = new ObjectMapper();
@@ -115,6 +123,9 @@ class ObjectMapperTest extends TestCase
         $this->assertTrue($person->isCool);
         $this->assertSame(['Pepe', 'Pete'], $person->nicknames);
         $this->assertEquals((object)['hello' => 'Hi', 'bye' => 'Ciao!'], $person->dictionary);
+        $this->assertEquals(strtotime('2017-03-08T09:41:00'), $person->created->getTimestamp());
+        $this->assertEquals(strtotime('9.9.2017 00:00:00'), $person->updated->getTimestamp());
+        $this->assertEquals(strtotime('10.9.2017 00:00:00'), $person->deleted->getTimestamp());
         $address = new Address();
         $address->street = 'Mainstreet 22a';
         $address->zipCode = 'A-12345';
