@@ -14,6 +14,7 @@ use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
 use Doctrine\Common\Annotations\DocParser;
 use MintWare\JOM\Exception\ClassNotFoundException;
+use MintWare\JOM\Exception\InvalidJsonException;
 use MintWare\JOM\Exception\PropertyNotAccessibleException;
 use MintWare\JOM\Exception\TypeMismatchException;
 
@@ -49,13 +50,16 @@ class ObjectMapper
      *
      * @return mixed The mapped object
      *
-     * @throws \ParseError If the JSON is not valid
+     * @throws InvalidJsonException If the JSON is not valid
+     * @throws ClassNotFoundException If the target class does not exist
+     * @throws PropertyNotAccessibleException If the class property has no public access an no set-Method
+     * @throws TypeMismatchException If The type in the JSON does not match the type in the class
      */
     public function mapJson($json, $targetClass)
     {
         // Check if the JSON is valid
         if (!is_array($data = json_decode($json, true))) {
-            throw new \ParseError('The JSON is not valid.');
+            throw new InvalidJsonException();
         }
 
         // Pre initialize the result
@@ -90,6 +94,8 @@ class ObjectMapper
      */
     public function mapDataToObject($data, $targetClass)
     {
+        $targetClass = preg_replace('~(\\\\){2,}~', '\\', $targetClass);
+
         // Check if the target object class exists, if not throw an exception
         if (!class_exists($targetClass)) {
             throw new ClassNotFoundException($targetClass);

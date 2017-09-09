@@ -11,11 +11,13 @@
 namespace MintWare\Tests\JOM;
 
 use MintWare\JOM\Exception\ClassNotFoundException;
+use MintWare\JOM\Exception\InvalidJsonException;
 use MintWare\JOM\Exception\PropertyNotAccessibleException;
 use MintWare\JOM\Exception\TypeMismatchException;
 use MintWare\JOM\ObjectMapper;
 use MintWare\Tests\JOM\Objects\Address;
 use MintWare\Tests\JOM\Objects\Person;
+use MintWare\Tests\JOM\Objects\PersonWithEscapedFQCN;
 use MintWare\Tests\JOM\Objects\PersonWithMultipleAddresses;
 use PHPUnit\Framework\TestCase;
 
@@ -30,7 +32,7 @@ class ObjectMapperTest extends TestCase
     public function testMapJsonFailsInvalidJson()
     {
         $mapper = new ObjectMapper();
-        $this->expectException(\ParseError::class);
+        $this->expectException(InvalidJsonException::class);
         $this->expectExceptionMessage('The JSON is not valid.');
         $mapper->mapJson('{"foo', null);
     }
@@ -128,6 +130,27 @@ class ObjectMapperTest extends TestCase
 
         /** @var PersonWithMultipleAddresses $person */
         $person = $mapper->mapDataToObject($data, PersonWithMultipleAddresses::class);
+        $address1 = new Address();
+        $address1->street = 'Mainstreet 22a';
+        $address1->zipCode = 'A-12345';
+        $address1->town = 'Best Town';
+        $address1->country = 'Germany';
+
+        $address2 = new Address();
+        $address2->street = 'Otherstreet #1';
+        $address2->zipCode = 'A-54321';
+        $address2->town = 'Great Town';
+        $address2->country = 'Austria';
+        $this->assertEquals([$address1, $address2], $person->addresses);
+    }
+
+    public function testMapDataToObjectWithEscapedFQCN()
+    {
+        $mapper = new ObjectMapper();
+        $data = json_decode(file_get_contents(__DIR__ . '/res/person_multiple_addresses.json'), true);
+
+        /** @var PersonWithMultipleAddresses $person */
+        $person = $mapper->mapDataToObject($data, PersonWithEscapedFQCN::class);
         $address1 = new Address();
         $address1->street = 'Mainstreet 22a';
         $address1->zipCode = 'A-12345';
