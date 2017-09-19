@@ -38,7 +38,7 @@ class Person
     /** @MintWare\JOM\JsonField(name="dictionary", type="object") */
     public $dictionary;
 
-    /** @MintWare\JOM\JsonField(name="address", type="MintWare\Tests\JOM\Objects\Address") */
+    /** @MintWare\JOM\JsonField(name="address", type="string|MintWare\Tests\JOM\Objects\Address") */
     public $address;
 
     /**

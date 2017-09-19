@@ -1,0 +1,19 @@
+{
+    "firstname": "Pete",
+    "surname": "Peterson",
+    "age": 28,
+    "height": 1.72,
+    "is_cool": true,
+    "nicknames": [
+        "Pepe",
+        "Pete"
+    ],
+    "dictionary": {
+        "hello": "Hi",
+        "bye": "Ciao!"
+    },
+    "address": "Mainstreet 22a, A-12345, Best Town, Germany",
+    "created": "2017-03-08T09:41:00",
+    "updated": "1504915250",
+    "deleted": 1505001600
+}

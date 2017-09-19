@@ -129,100 +129,131 @@ class ObjectMapper
             if (isset($data[$field->name])) {
                 $val = null;
 
-                // Check the type of the field and set the val
-                switch (strtolower($field->type)) {
-                    case 'int':
-                    case 'integer':
-                        if (!is_int($data[$field->name])) {
-                            throw new TypeMismatchException($field->type, gettype($data[$field->name]));
-                        }
-                        $val = (int)$data[$field->name];
-                        break;
-                    case 'float':
-                    case 'double':
-                    case 'real':
-                        if (!is_float($data[$field->name])) {
-                            throw new TypeMismatchException($field->type, gettype($data[$field->name]));
-                        }
-                        $val = (double)$data[$field->name];
-                        break;
-                    case 'bool':
-                    case 'boolean':
-                        if (!is_bool($data[$field->name])) {
-                            throw new TypeMismatchException($field->type, gettype($data[$field->name]));
-                        }
-                        $val = (bool)$data[$field->name];
-                        break;
-                    case 'array':
-                        if (!is_array($data[$field->name])) {
-                            throw new TypeMismatchException($field->type, gettype($data[$field->name]));
-                        }
-                        $val = (array)$data[$field->name];
-                        break;
-                    case 'string':
-                        if (!is_string($data[$field->name])) {
-                            throw new TypeMismatchException($field->type, gettype($data[$field->name]));
-                        }
-                        $val = (string)$data[$field->name];
-                        break;
-                    case 'object':
-                        $tmpVal = $data[$field->name];
-                        if (is_array($tmpVal) && array_keys($tmpVal) != range(0, count($tmpVal))) {
-                            $data[$field->name] = (object)$tmpVal;
-                        }
-                        if (!is_object($data[$field->name])) {
-                            throw new TypeMismatchException($field->type, gettype($data[$field->name]));
-                        }
-                        $val = (object)$data[$field->name];
-                        break;
-                    case 'date':
-                    case 'datetime':
-                        // Accepts the following formats:
-                        // 2017-09-09
-                        // 2017-09-09 13:20:59
-                        // 2017-09-09T13:20:59
-                        // 2017-09-09T13:20:59.511
-                        // 2017-09-09T13:20:59.511Z
-                        // 2017-09-09T13:20:59-02:00
-                        $validPattern = '~^\d{4}-\d{2}-\d{2}((T|\s{1})\d{2}:\d{2}:\d{2}(\.\d{1,3}(Z|)|(\+|\-)\d{2}:\d{2}|)|)$~';
+                $types = explode('|', $field->type);
+                $typeKeys = array_keys($types);
+                $lastTypeKey = end($typeKeys);
 
-                        $tmpVal = $data[$field->name];
-                        if (preg_match($validPattern, $tmpVal)) {
-                            $data[$field->name] = new \DateTime($tmpVal);
-                        } else {
-                            $casted = intval($tmpVal);
-                            if (is_numeric($tmpVal) || ($casted == $tmpVal && strlen($casted) == strlen($tmpVal))) {
-                                $data[$field->name] = new \DateTime();
-                                $data[$field->name]->setTimestamp($tmpVal);
+                foreach ($types as $typeKey => $type) {
+                    $isLastElement = ($typeKey == $lastTypeKey);
+                    // Check the type of the field and set the val
+                    switch (strtolower($type)) {
+                        case 'int':
+                        case 'integer':
+                            if (!is_int($data[$field->name])) {
+                                if ($isLastElement) {
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                }
+                                break;
                             }
-                        }
+                            $val = (int)$data[$field->name];
+                            break;
+                        case 'float':
+                        case 'double':
+                        case 'real':
+                            if (!is_float($data[$field->name])) {
+                                if ($isLastElement) {
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                }
+                                break;
+                            }
+                            $val = (double)$data[$field->name];
+                            break;
+                        case 'bool':
+                        case 'boolean':
+                            if (!is_bool($data[$field->name])) {
+                                if ($isLastElement) {
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                }
+                                break;
+                            }
+                            $val = (bool)$data[$field->name];
+                            break;
+                        case 'array':
+                            if (!is_array($data[$field->name])) {
+                                if ($isLastElement) {
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                }
+                                break;
+                            }
+                            $val = (array)$data[$field->name];
+                            break;
+                        case 'string':
+                            if (!is_string($data[$field->name])) {
+                                if ($isLastElement) {
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                }
+                                break;
+                            }
+                            $val = (string)$data[$field->name];
+                            break;
+                        case 'object':
+                            $tmpVal = $data[$field->name];
+                            if (is_array($tmpVal) && array_keys($tmpVal) != range(0, count($tmpVal))) {
+                                $data[$field->name] = (object)$tmpVal;
+                            }
+                            if (!is_object($data[$field->name])) {
+                                if ($isLastElement) {
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                }
+                                break;
+                            }
+                            $val = (object)$data[$field->name];
+                            break;
+                        case 'date':
+                        case 'datetime':
+                            // Accepts the following formats:
+                            // 2017-09-09
+                            // 2017-09-09 13:20:59
+                            // 2017-09-09T13:20:59
+                            // 2017-09-09T13:20:59.511
+                            // 2017-09-09T13:20:59.511Z
+                            // 2017-09-09T13:20:59-02:00
+                            $validPattern = '~^\d{4}-\d{2}-\d{2}((T|\s{1})\d{2}:\d{2}:\d{2}(\.\d{1,3}(Z|)|(\+|\-)\d{2}:\d{2}|)|)$~';
 
-                        if ($data[$field->name] instanceof \DateTime === false) {
-                            throw new TypeMismatchException($field->type, gettype($data[$field->name]));
-                        }
+                            $tmpVal = $data[$field->name];
+                            if (preg_match($validPattern, $tmpVal)) {
+                                $data[$field->name] = new \DateTime($tmpVal);
+                            } else {
+                                $casted = intval($tmpVal);
+                                if (is_numeric($tmpVal) || ($casted == $tmpVal && strlen($casted) == strlen($tmpVal))) {
+                                    $data[$field->name] = new \DateTime();
+                                    $data[$field->name]->setTimestamp($tmpVal);
+                                }
+                            }
 
-                        if (strtolower($field->type) == 'date') {
-                            $data[$field->name]->setTime(0, 0, 0);
-                        }
+                            if ($data[$field->name] instanceof \DateTime === false) {
+                                if ($isLastElement) {
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                }
+                                break;
+                            }
 
-                        $val = $data[$field->name];
-                        break;
-                    default:
-                        // If none of the primitives above match it is an custom object
+                            if (strtolower($type) == 'date') {
+                                $data[$field->name]->setTime(0, 0, 0);
+                            }
 
-                        // Check if it's an array of X
-                        if (substr($field->type, -2) == '[]') {
-                            $t = substr($field->type, 0, -2);
-                            $val = [];
-                            foreach ($data[$field->name] as $entry) {
+                            $val = $data[$field->name];
+                            break;
+                        default:
+                            // If none of the primitives above match it is an custom object
+
+                            // Check if it's an array of X
+                            if (substr($type, -2) == '[]' && is_array($data[$field->name])) {
+                                $t = substr($type, 0, -2);
+                                $val = [];
+                                foreach ($data[$field->name] as $entry) {
+                                    // Map the data recursive
+                                    $val[] = (object)$this->mapDataToObject($entry, $t);
+                                }
+                            } elseif (substr($type, -2) != '[]') {
                                 // Map the data recursive
-                                $val[] = (object)$this->mapDataToObject($entry, $t);
+                                $val = (object)$this->mapDataToObject($data[$field->name], $type);
                             }
-                        } else {
-                            // Map the data recursive
-                            $val = (object)$this->mapDataToObject($data[$field->name], $field->type);
-                        }
+                            break;
+                    }
+                    if ($val !== null) {
                         break;
+                    }
                 }
 
                 // Assign the JSON data to the object property
