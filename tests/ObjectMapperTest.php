@@ -134,6 +134,26 @@ class ObjectMapperTest extends TestCase
         $this->assertEquals($address, $person->address);
     }
 
+    public function testMapDataToObjectMultipleTypes()
+    {
+        $mapper = new ObjectMapper();
+        $data = json_decode(file_get_contents(__DIR__ . '/res/person_string_address.json'), true);
+
+        /** @var Person $person */
+        $person = $mapper->mapDataToObject($data, Person::class);
+        $this->assertSame('Pete', $person->name);
+        $this->assertSame('Peterson', $person->surname);
+        $this->assertSame(28, $person->age);
+        $this->assertSame(1.72, $person->height);
+        $this->assertTrue($person->isCool);
+        $this->assertSame(['Pepe', 'Pete'], $person->nicknames);
+        $this->assertEquals((object)['hello' => 'Hi', 'bye' => 'Ciao!'], $person->dictionary);
+        $this->assertEquals(strtotime('2017-03-08T09:41:00'), $person->created->getTimestamp());
+        $this->assertEquals(strtotime('9.9.2017 00:00:00'), $person->updated->getTimestamp());
+        $this->assertEquals(strtotime('10.9.2017 00:00:00'), $person->deleted->getTimestamp());
+        $this->assertSame("Mainstreet 22a, A-12345, Best Town, Germany", $person->address);
+    }
+
     public function testMapDataToObjectMultiple()
     {
         $mapper = new ObjectMapper();
