@@ -49,13 +49,13 @@ class Person
 
     /**
      * @var \DateTime
-     * @MintWare\JOM\JsonField(name="updated", type="date")
+     * @MintWare\JOM\DateTimeField(name="updated", type="date", format="timestamp")
      */
     public $updated;
 
     /**
      * @var \DateTime
-     * @MintWare\JOM\JsonField(name="deleted", type="datetime")
+     * @MintWare\JOM\DateTimeField(name="deleted", type="datetime", format="timestamp")
      */
     public $deleted;
 

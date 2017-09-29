@@ -21,7 +21,7 @@ class PropertyNotAccessibleException extends \Exception
     {
         $uc = ucwords($propertyName);
         $setters = sprintf('"%s"', implode($uc . '", "', ['set', 'add']) . $uc);
-        $message = sprintf('Neither the property "%s" nor one of the methods %s have public access.', $propertyName, $setters);
+        $message = sprintf('Neither the property "%s" nor one of the methods %s (or getter) have public access.', $propertyName, $setters);
         parent::__construct($message, $code, $previous);
     }
 }
