@@ -276,4 +276,167 @@ class ObjectMapper
 
         return $object;
     }
+
+
+    /**
+     * Serializes an object to JSON
+     *
+     * @param object $object The object
+     * @param bool $returnAsString For internal usage
+     * @return string|array The JSON-String
+     *
+     * @throws ClassNotFoundException If the target class does not exist
+     * @throws PropertyNotAccessibleException If the mapped property is not accessible
+     * @throws TypeMismatchException If the given type in json does not match with the expected type
+     */
+    public function objectToJson($object, $returnAsString = true)
+    {
+        $jsonData = [];
+        // Reflecting the target object to extract properties etc.
+        $class = new \ReflectionObject($object);
+
+        // Iterate over each class property to check if it's mapped
+        foreach ($class->getProperties() as $property) {
+            // Extract the JsonField Annotation
+            /** @var JsonField $field */
+            $field = $this->reader->getPropertyAnnotation($property, JsonField::class);
+
+            // Is it not defined, the property is not mapped
+            if (null === $field) {
+                continue;
+            }
+
+            // Check if the property is public accessible or has a setter / adder
+            $ucw = ucwords($property->getName());
+            if (!$property->isPublic() && !($class->hasMethod('get' . $ucw))) {
+                throw new PropertyNotAccessibleException($property->getName());
+            }
+
+            $val = null;
+            if ($property->isPublic()) {
+                $val = $object->{$property->getName()};
+            } else {
+                $val = $object->{'get' . $ucw}();
+            }
+            if (is_null($val)) {
+                $jsonData[$field->name] = $val;
+                continue;
+            }
+
+            $types = explode('|', $field->type);
+            $type = null;
+            foreach ($types as $tString) {
+                $type = $tString;
+                if (!is_object($val)) {
+                    break;
+                }
+                if (!in_array(strtolower($tString), [
+                    'int', 'integer',
+                    'float', 'double', 'real',
+                    'bool', 'boolean',
+                    'array',
+                    'string',
+                    'object',
+                    'date', 'datetime'])) {
+                    break;
+                }
+            }
+
+            // Check the type of the field and set the val
+            switch (strtolower($type)) {
+                case 'int':
+                case 'integer':
+                    if (!is_int($val)) {
+                        throw new TypeMismatchException($type, gettype($val));
+                    }
+                    $val = (int)$val;
+                    break;
+                case 'float':
+                case 'double':
+                case 'real':
+                    if (!is_float($val)) {
+                        throw new TypeMismatchException($type, gettype($val));
+                    }
+                    $val = (double)$val;
+                    break;
+                case 'bool':
+                case 'boolean':
+                    if (!is_bool($val)) {
+                        throw new TypeMismatchException($type, gettype($val));
+                    }
+                    $val = (bool)$val;
+                    break;
+                case 'array':
+                    if (!is_array($val)) {
+                        throw new TypeMismatchException($type, gettype($val));
+                    }
+                    $val = (array)$val;
+                    break;
+                case 'string':
+                    if (!is_string($val)) {
+                        throw new TypeMismatchException($type, gettype($val));
+                    }
+                    $val = (string)$val;
+                    break;
+                case 'object':
+                    $tmpVal = $val;
+                    if (is_array($tmpVal) && array_keys($tmpVal) != range(0, count($tmpVal))) {
+                        $val = (object)$tmpVal;
+                    }
+                    if (!is_object($val)) {
+                        throw new TypeMismatchException($type, gettype($val));
+                    }
+                    $val = (object)$val;
+                    break;
+                case 'date':
+                case 'datetime':
+                    if ($val instanceof \DateTime === false) {
+                        throw new TypeMismatchException($type, gettype($val));
+                    }
+
+                    $format = 'Y-m-d\TH:i:s';
+                    if ($field instanceof DateTimeField && $field->format !== null) {
+                        $format = $field->format;
+                    }
+
+                    /** @var \DateTime $val */
+                    if (strtolower($format) !== 'timestamp') {
+                        $val = $val->format($format);
+                    } else {
+                        $val = $val->getTimestamp();
+                    }
+                    break;
+                default:
+                    // If none of the primitives above match it is an custom object
+
+                    // Check if it's an array of X
+                    if (substr($type, -2) == '[]' && is_array($val)) {
+                        $tmpVal = [];
+                        foreach ($val as $entry) {
+                            // Map the data recursive
+                            $tmpVal[] = (object)$this->objectToJson($entry, false);
+                        }
+                        $val = $tmpVal;
+                    } elseif (substr($type, -2) != '[]') {
+                        // Map the data recursive
+                        $val = (object)$this->objectToJson($val, false);
+                    }
+                    break;
+            }
+
+            // Assign the JSON data to the object property
+            if ($val !== null) {
+                // If the property is public accessible, set the value directly
+                $jsonData[$field->name] = $val;
+            }
+        }
+
+        $res = $jsonData;
+        if ($returnAsString) {
+            $res = json_encode($res, JSON_PRETTY_PRINT);
+        }
+
+        return $res;
+    }
+
 }

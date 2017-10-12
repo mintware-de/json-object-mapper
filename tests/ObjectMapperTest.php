@@ -49,7 +49,7 @@ class ObjectMapperTest extends TestCase
     {
         $mapper = new ObjectMapper();
         $this->expectException(PropertyNotAccessibleException::class);
-        $this->expectExceptionMessage('Neither the property "name" nor one of the methods "setName", "addName" have public access.');
+        $this->expectExceptionMessage('Neither the property "name" nor one of the methods "setName", "addName" (or getter) have public access.');
         $mapper->mapDataToObject(json_decode('{"foo": 1}', true), FailPerson::class);
     }
 
@@ -252,5 +252,120 @@ class ObjectMapperTest extends TestCase
         $this->assertSame(25, $person2->age);
         $this->assertSame(1.63, $person2->height);
         $this->assertTrue($person2->isCool);
+    }
+
+    public function testObjectToJsonFailsPropertyNotAccessible()
+    {
+        $mapper = new ObjectMapper();
+        $this->expectException(PropertyNotAccessibleException::class);
+        $this->expectExceptionMessage('Neither the property "name" nor one of the methods "setName", "addName" (or getter) have public access.');
+        $mapper->objectToJson(new FailPerson());
+    }
+
+
+    public function testObjectToJson()
+    {
+        $mapper = new ObjectMapper();
+        $json = file_get_contents(__DIR__ . '/res/person.json');
+
+        $personOld = $mapper->mapJson($json, Person::class);
+        $reversedJson = $mapper->objectToJson($personOld);
+        $personNew = $mapper->mapJson($reversedJson, Person::class);
+
+        $this->assertEquals($personOld, $personNew);
+    }
+
+    public function testObjectToJsonAdvanced()
+    {
+        $mapper = new ObjectMapper();
+        $json = file_get_contents(__DIR__ . '/res/person_multiple_addresses.json');
+
+        /** @var Person $person */
+        $person = $mapper->mapJson($json, PersonWithMultipleAddresses::class);
+
+        $reversedJson = $mapper->objectToJson($person);
+        // Normalize line endings
+        $json = str_replace(["\r\n", "\r", "\n"], "\n", $json);
+        $reversedJson = str_replace(["\r\n", "\r", "\n"], "\n", $reversedJson);
+
+        $this->assertEquals($json, $reversedJson);
+    }
+
+    public function testObjectToJsonFailsTypeMismatchInteger()
+    {
+        $mapper = new ObjectMapper();
+        $p = new Person();
+        $p->age = false;
+        $this->expectException(TypeMismatchException::class);
+        $this->expectExceptionMessage('Wrong Type. Expected int got bool');
+        $mapper->objectToJson($p);
+    }
+
+    public function testObjectToJsonFailsTypeMismatchString()
+    {
+        $mapper = new ObjectMapper();
+        $p = new Person();
+        $p->name = new \DateTime();
+        $this->expectException(TypeMismatchException::class);
+        $this->expectExceptionMessage('Wrong Type. Expected string got object');
+        $mapper->objectToJson($p);
+    }
+
+    public function testObjectToJsonFailsTypeMismatchFloat()
+    {
+        $mapper = new ObjectMapper();
+        $p = new Person();
+        $p->height = "hello :-)";
+        $this->expectException(TypeMismatchException::class);
+        $this->expectExceptionMessage('Wrong Type. Expected float got string');
+        $mapper->objectToJson($p);
+    }
+
+    public function testObjectToJsonFailsTypeMismatchBool()
+    {
+        $mapper = new ObjectMapper();
+        $p = new Person();
+        $p->isCool = 1.322;
+        $this->expectException(TypeMismatchException::class);
+        $this->expectExceptionMessage('Wrong Type. Expected bool got double');
+        $mapper->objectToJson($p);
+    }
+
+    public function testObjectToJsonFailsTypeMismatchArray()
+    {
+        $mapper = new ObjectMapper();
+        $p = new Person();
+        $p->nicknames = 1;
+        $this->expectException(TypeMismatchException::class);
+        $this->expectExceptionMessage('Wrong Type. Expected array got integer');
+        $mapper->objectToJson($p);
+    }
+
+    public function testObjectToJsonFailsTypeMismatchObject()
+    {
+        $mapper = new ObjectMapper();
+        $p = new Person();
+        $p->dictionary = "asd";
+        $this->expectException(TypeMismatchException::class);
+        $this->expectExceptionMessage('Wrong Type. Expected object got string');
+        $mapper->objectToJson($p);
+    }
+
+    public function testObjectToJsonNotFailsTypeMismatchArrayObject()
+    {
+        $mapper = new ObjectMapper();
+        $p = new Person();
+        $p->dictionary = ['nice' => "asd"];
+        $mapper->objectToJson($p);
+    }
+
+    public function testObjectToJsonFailsTypeMismatchDateTime()
+    {
+        $mapper = new ObjectMapper();
+        $p = new Person();
+        $p->created = true;
+        $this->expectException(TypeMismatchException::class);
+        $this->expectExceptionMessage('Wrong Type. Expected datetime got boolean');
+        $mapper->objectToJson($p);
     }
 }
