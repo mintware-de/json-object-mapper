@@ -14,6 +14,10 @@ You can install this library using composer
 $ composer require mintware-de/json-object-mapper
 ```
 
+<a target='_blank' rel='nofollow' href='https://app.codesponsor.io/link/BMzHt4SSEgWb987FMzSqCXEm/mintware-de/json-object-mapper'>
+  <img alt='Sponsor' width='888' height='68' src='https://app.codesponsor.io/embed/BMzHt4SSEgWb987FMzSqCXEm/mintware-de/json-object-mapper.svg' />
+</a>
+
 ## Usage
 JOM is totally easy to use. 
 Simply put the annotation @MintWare\JOM\JsonField(name=, type=) to your class properties.
