@@ -17,9 +17,16 @@ namespace MintWare\JOM\Exception;
  */
 class TypeMismatchException extends \Exception
 {
-    public function __construct($expectedType, $givenType, $code = 0, \Throwable $previous = null)
+    /**
+     * TypeMismatchException
+     *
+     * @param string $expectedType The expected type
+     * @param string $givenType The given Type
+     * @param string $propertyName The name of the Property
+     */
+    public function __construct($expectedType, $givenType, $propertyName)
     {
-        $message = sprintf('Wrong Type. Expected %s got %s', $expectedType, $givenType);
-        parent::__construct($message, $code, $previous);
+        $message = sprintf('Wrong Type. Expected %s got %s. Property name: %s', $expectedType, $givenType, $propertyName);
+        parent::__construct($message, 0, null);
     }
 }
