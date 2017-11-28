@@ -120,9 +120,10 @@ class ObjectMapper
             }
 
             // Check if the property is public accessible or has a setter / adder
-            $ucw = ucwords($property->getName());
+            $propertyName = $property->getName();
+            $ucw = ucwords($propertyName);
             if (!$property->isPublic() && !($class->hasMethod('set' . $ucw) || $class->hasMethod('add' . $ucw))) {
-                throw new PropertyNotAccessibleException($property->getName());
+                throw new PropertyNotAccessibleException($propertyName);
             }
 
             // Check if the current property is defined in the JSON
@@ -141,7 +142,7 @@ class ObjectMapper
                         case 'integer':
                             if (!is_int($data[$field->name])) {
                                 if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
                                 }
                                 break;
                             }
@@ -152,7 +153,7 @@ class ObjectMapper
                         case 'real':
                             if (!is_float($data[$field->name])) {
                                 if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
                                 }
                                 break;
                             }
@@ -162,7 +163,7 @@ class ObjectMapper
                         case 'boolean':
                             if (!is_bool($data[$field->name])) {
                                 if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
                                 }
                                 break;
                             }
@@ -171,7 +172,7 @@ class ObjectMapper
                         case 'array':
                             if (!is_array($data[$field->name])) {
                                 if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
                                 }
                                 break;
                             }
@@ -180,7 +181,7 @@ class ObjectMapper
                         case 'string':
                             if (!is_string($data[$field->name])) {
                                 if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
                                 }
                                 break;
                             }
@@ -193,7 +194,7 @@ class ObjectMapper
                             }
                             if (!is_object($data[$field->name])) {
                                 if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
                                 }
                                 break;
                             }
@@ -223,7 +224,7 @@ class ObjectMapper
 
                             if ($data[$field->name] instanceof \DateTime === false) {
                                 if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]));
+                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
                                 }
                                 break;
                             }
@@ -260,10 +261,10 @@ class ObjectMapper
                 if ($val !== null) {
                     // If the property is public accessible, set the value directly
                     if ($property->isPublic()) {
-                        $object->{$property->getName()} = $val;
+                        $object->{$propertyName} = $val;
                     } else {
                         // If not, use the setter / adder
-                        $ucw = ucwords($property->getName());
+                        $ucw = ucwords($propertyName);
                         if ($class->hasMethod($method = 'set' . $ucw)) {
                             $object->$method($val);
                         } elseif ($class->hasMethod($method = 'add' . $ucw)) {
@@ -307,14 +308,15 @@ class ObjectMapper
             }
 
             // Check if the property is public accessible or has a setter / adder
-            $ucw = ucwords($property->getName());
+            $propertyName = $property->getName();
+            $ucw = ucwords($propertyName);
             if (!$property->isPublic() && !($class->hasMethod('get' . $ucw))) {
-                throw new PropertyNotAccessibleException($property->getName());
+                throw new PropertyNotAccessibleException($propertyName);
             }
 
             $val = null;
             if ($property->isPublic()) {
-                $val = $object->{$property->getName()};
+                $val = $object->{$propertyName};
             } else {
                 $val = $object->{'get' . $ucw}();
             }
@@ -341,13 +343,12 @@ class ObjectMapper
                     break;
                 }
             }
-
             // Check the type of the field and set the val
             switch (strtolower($type)) {
                 case 'int':
                 case 'integer':
                     if (!is_int($val)) {
-                        throw new TypeMismatchException($type, gettype($val));
+                        throw new TypeMismatchException($type, gettype($val), $propertyName);
                     }
                     $val = (int)$val;
                     break;
@@ -355,26 +356,26 @@ class ObjectMapper
                 case 'double':
                 case 'real':
                     if (!is_float($val)) {
-                        throw new TypeMismatchException($type, gettype($val));
+                        throw new TypeMismatchException($type, gettype($val), $propertyName);
                     }
                     $val = (double)$val;
                     break;
                 case 'bool':
                 case 'boolean':
                     if (!is_bool($val)) {
-                        throw new TypeMismatchException($type, gettype($val));
+                        throw new TypeMismatchException($type, gettype($val), $propertyName);
                     }
                     $val = (bool)$val;
                     break;
                 case 'array':
                     if (!is_array($val)) {
-                        throw new TypeMismatchException($type, gettype($val));
+                        throw new TypeMismatchException($type, gettype($val), $propertyName);
                     }
                     $val = (array)$val;
                     break;
                 case 'string':
                     if (!is_string($val)) {
-                        throw new TypeMismatchException($type, gettype($val));
+                        throw new TypeMismatchException($type, gettype($val), $propertyName);
                     }
                     $val = (string)$val;
                     break;
@@ -384,14 +385,14 @@ class ObjectMapper
                         $val = (object)$tmpVal;
                     }
                     if (!is_object($val)) {
-                        throw new TypeMismatchException($type, gettype($val));
+                        throw new TypeMismatchException($type, gettype($val), $propertyName);
                     }
                     $val = (object)$val;
                     break;
                 case 'date':
                 case 'datetime':
                     if ($val instanceof \DateTime === false) {
-                        throw new TypeMismatchException($type, gettype($val));
+                        throw new TypeMismatchException($type, gettype($val), $propertyName);
                     }
 
                     $format = 'Y-m-d\TH:i:s';
@@ -438,5 +439,4 @@ class ObjectMapper
 
         return $res;
     }
-
 }

@@ -57,7 +57,7 @@ class ObjectMapperTest extends TestCase
     {
         $mapper = new ObjectMapper();
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected int got bool');
+        $this->expectExceptionMessage('Wrong Type. Expected int got boolean. Property name: age');
         $mapper->mapDataToObject(['age' => false], Person::class);
     }
 
@@ -65,7 +65,7 @@ class ObjectMapperTest extends TestCase
     {
         $mapper = new ObjectMapper();
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected float got int');
+        $this->expectExceptionMessage('Wrong Type. Expected float got integer. Property name: height');
         $mapper->mapDataToObject(['height' => 1], Person::class);
     }
 
@@ -73,7 +73,7 @@ class ObjectMapperTest extends TestCase
     {
         $mapper = new ObjectMapper();
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected bool got string');
+        $this->expectExceptionMessage('Wrong Type. Expected bool got string. Property name: is_cool');
         $mapper->mapDataToObject(['is_cool' => 'red'], Person::class);
     }
 
@@ -81,7 +81,7 @@ class ObjectMapperTest extends TestCase
     {
         $mapper = new ObjectMapper();
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected array got object');
+        $this->expectExceptionMessage('Wrong Type. Expected array got object. Property name: nicknames');
         $mapper->mapDataToObject(['nicknames' => (object)[]], Person::class);
     }
 
@@ -89,7 +89,7 @@ class ObjectMapperTest extends TestCase
     {
         $mapper = new ObjectMapper();
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected string got array');
+        $this->expectExceptionMessage('Wrong Type. Expected string got array. Property name: firstname');
         $mapper->mapDataToObject(['firstname' => []], Person::class);
     }
 
@@ -97,7 +97,7 @@ class ObjectMapperTest extends TestCase
     {
         $mapper = new ObjectMapper();
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected object got bool');
+        $this->expectExceptionMessage('Wrong Type. Expected object got boolean. Property name: dictionary');
         $mapper->mapDataToObject(['dictionary' => false], Person::class);
     }
 
@@ -105,7 +105,7 @@ class ObjectMapperTest extends TestCase
     {
         $mapper = new ObjectMapper();
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected datetime got string');
+        $this->expectExceptionMessage('Wrong Type. Expected datetime got string. Property name: created');
         $mapper->mapDataToObject(['created' => "Hello World"], Person::class);
     }
 
@@ -297,7 +297,7 @@ class ObjectMapperTest extends TestCase
         $p = new Person();
         $p->age = false;
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected int got bool');
+        $this->expectExceptionMessage('Wrong Type. Expected int got boolean. Property name: age');
         $mapper->objectToJson($p);
     }
 
@@ -307,7 +307,7 @@ class ObjectMapperTest extends TestCase
         $p = new Person();
         $p->name = new \DateTime();
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected string got object');
+        $this->expectExceptionMessage('Wrong Type. Expected string got object. Property name: name');
         $mapper->objectToJson($p);
     }
 
@@ -317,7 +317,7 @@ class ObjectMapperTest extends TestCase
         $p = new Person();
         $p->height = "hello :-)";
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected float got string');
+        $this->expectExceptionMessage('Wrong Type. Expected float got string. Property name: height');
         $mapper->objectToJson($p);
     }
 
@@ -327,7 +327,7 @@ class ObjectMapperTest extends TestCase
         $p = new Person();
         $p->isCool = 1.322;
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected bool got double');
+        $this->expectExceptionMessage('Wrong Type. Expected bool got double. Property name: isCool');
         $mapper->objectToJson($p);
     }
 
@@ -337,7 +337,7 @@ class ObjectMapperTest extends TestCase
         $p = new Person();
         $p->nicknames = 1;
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected array got integer');
+        $this->expectExceptionMessage('Wrong Type. Expected array got integer. Property name: nicknames');
         $mapper->objectToJson($p);
     }
 
@@ -347,7 +347,7 @@ class ObjectMapperTest extends TestCase
         $p = new Person();
         $p->dictionary = "asd";
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected object got string');
+        $this->expectExceptionMessage('Wrong Type. Expected object got string. Property name: dictionary');
         $mapper->objectToJson($p);
     }
 
@@ -365,7 +365,7 @@ class ObjectMapperTest extends TestCase
         $p = new Person();
         $p->created = true;
         $this->expectException(TypeMismatchException::class);
-        $this->expectExceptionMessage('Wrong Type. Expected datetime got boolean');
+        $this->expectExceptionMessage('Wrong Type. Expected datetime got boolean. Property name: created');
         $mapper->objectToJson($p);
     }
 }
