@@ -2,7 +2,7 @@
 /**
  * This file is part of the JSON Object Mapper package.
  *
- * Copyright 2017 by Julian Finkler <julian@mintware.de>
+ * Copyright 2017 - 2018 by Julian Finkler <julian@mintware.de>
  *
  * For the full copyright and license information, please read the LICENSE
  * file that was distributed with this source code.
@@ -16,6 +16,7 @@ use MintWare\JOM\Exception\PropertyNotAccessibleException;
 use MintWare\JOM\Exception\TypeMismatchException;
 use MintWare\JOM\ObjectMapper;
 use MintWare\Tests\JOM\Objects\Address;
+use MintWare\Tests\JOM\Objects\Autobot;
 use MintWare\Tests\JOM\Objects\Person;
 use MintWare\Tests\JOM\Objects\PersonWithEscapedFQCN;
 use MintWare\Tests\JOM\Objects\PersonWithMultipleAddresses;
@@ -367,5 +368,26 @@ class ObjectMapperTest extends TestCase
         $this->expectException(TypeMismatchException::class);
         $this->expectExceptionMessage('Wrong Type. Expected datetime got boolean. Property name: created');
         $mapper->objectToJson($p);
+    }
+
+    public function testTransformers()
+    {
+        $mapper = new ObjectMapper();
+        $data = file_get_contents(__DIR__ . '/res/transformer.json');
+
+        /** @var Autobot $autobot */
+        $autobot = $mapper->mapJson($data, Autobot::class);
+        $this->assertInstanceOf(\DateTime::class, $autobot->createdAt);
+        $this->assertEquals(['yellow', 'black', 'bumblebee', 'json', 'transformer'], $autobot->tags);
+        $this->assertEquals(7, $autobot->series);
+
+        $reversedJson = <<<JSON
+{
+    "created_at": "1515533307000",
+    "tags": "yellow,black,bumblebee,json,transformer",
+    "series": "000007"
+}
+JSON;
+        $this->assertEquals($reversedJson, $mapper->objectToJson($autobot));
     }
 }
