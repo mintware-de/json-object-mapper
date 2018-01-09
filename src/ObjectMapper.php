@@ -2,7 +2,7 @@
 /**
  * This file is part of the JSON Object Mapper package.
  *
- * Copyright 2017 by Julian Finkler <julian@mintware.de>
+ * Copyright 2017 - 2018 by Julian Finkler <julian@mintware.de>
  *
  * For the full copyright and license information, please read the LICENSE
  * file that was distributed with this source code.
@@ -134,6 +134,17 @@ class ObjectMapper
                 $typeKeys = array_keys($types);
                 $lastTypeKey = end($typeKeys);
 
+                if ($field->preTransformer !== null) {
+                    $preTransformer = $field->preTransformer;
+                    $data[$field->name] = $preTransformer::transform($data[$field->name]);
+                }
+
+                if ($field->transformer !== null) {
+                    $transformer = $field->transformer;
+                    $val = $transformer::transform($data[$field->name]);
+                    $types = []; // Ignore type handler!
+                }
+
                 foreach ($types as $typeKey => $type) {
                     $isLastElement = ($typeKey == $lastTypeKey);
                     // Check the type of the field and set the val
@@ -252,6 +263,12 @@ class ObjectMapper
                             }
                             break;
                     }
+
+                    if ($field->postTransformer !== null) {
+                        $postTransformer = $field->postTransformer;
+                        $val = $postTransformer::transform($val);
+                    }
+
                     if ($val !== null) {
                         break;
                     }
@@ -320,109 +337,128 @@ class ObjectMapper
             } else {
                 $val = $object->{'get' . $ucw}();
             }
+
+            if ($field->preTransformer !== null) {
+                $preTransformer = $field->preTransformer;
+                $val = $preTransformer::reverseTransform($val);
+            }
+
+
+            if ($field->transformer !== null) {
+                $transformer = $field->transformer;
+                $val = $transformer::reverseTransform($val);
+            }
+
             if (is_null($val)) {
                 $jsonData[$field->name] = $val;
                 continue;
             }
 
-            $types = explode('|', $field->type);
-            $type = null;
-            foreach ($types as $tString) {
-                $type = $tString;
-                if (!is_object($val)) {
-                    break;
+            if ($field->transformer === null) {
+                $types = explode('|', $field->type);
+                $type = null;
+                foreach ($types as $tString) {
+                    $type = $tString;
+                    if (!is_object($val)) {
+                        break;
+                    }
+                    if (!in_array(strtolower($tString), [
+                        'int', 'integer',
+                        'float', 'double', 'real',
+                        'bool', 'boolean',
+                        'array',
+                        'string',
+                        'object',
+                        'date', 'datetime'])) {
+                        break;
+                    }
                 }
-                if (!in_array(strtolower($tString), [
-                    'int', 'integer',
-                    'float', 'double', 'real',
-                    'bool', 'boolean',
-                    'array',
-                    'string',
-                    'object',
-                    'date', 'datetime'])) {
-                    break;
+                // Check the type of the field and set the val
+                switch (strtolower($type)) {
+                    case 'int':
+                    case 'integer':
+                        if (!is_int($val)) {
+                            throw new TypeMismatchException($type, gettype($val), $propertyName);
+                        }
+                        $val = (int)$val;
+                        break;
+                    case 'float':
+                    case 'double':
+                    case 'real':
+                        if (!is_float($val)) {
+                            throw new TypeMismatchException($type, gettype($val), $propertyName);
+                        }
+                        $val = (double)$val;
+                        break;
+                    case 'bool':
+                    case 'boolean':
+                        if (!is_bool($val)) {
+                            throw new TypeMismatchException($type, gettype($val), $propertyName);
+                        }
+                        $val = (bool)$val;
+                        break;
+                    case 'array':
+                        if (!is_array($val)) {
+                            throw new TypeMismatchException($type, gettype($val), $propertyName);
+                        }
+                        $val = (array)$val;
+                        break;
+                    case 'string':
+                        if (!is_string($val)) {
+                            throw new TypeMismatchException($type, gettype($val), $propertyName);
+                        }
+                        $val = (string)$val;
+                        break;
+                    case 'object':
+                        $tmpVal = $val;
+                        if (is_array($tmpVal) && array_keys($tmpVal) != range(0, count($tmpVal))) {
+                            $val = (object)$tmpVal;
+                        }
+                        if (!is_object($val)) {
+                            throw new TypeMismatchException($type, gettype($val), $propertyName);
+                        }
+                        $val = (object)$val;
+                        break;
+                    case 'date':
+                    case 'datetime':
+                        if ($val instanceof \DateTime === false) {
+                            throw new TypeMismatchException($type, gettype($val), $propertyName);
+                        }
+
+                        $format = 'Y-m-d\TH:i:s';
+                        if ($field instanceof DateTimeField && $field->format !== null) {
+                            $format = $field->format;
+                        }
+
+                        /** @var \DateTime $val */
+                        if (strtolower($format) !== 'timestamp') {
+                            $val = $val->format($format);
+                        } else {
+                            $val = $val->getTimestamp();
+                        }
+                        break;
+                    default:
+                        // If none of the primitives above match it is an custom object
+
+                        // Check if it's an array of X
+                        if (substr($type, -2) == '[]' && is_array($val)) {
+                            $tmpVal = [];
+                            foreach ($val as $entry) {
+                                // Map the data recursive
+                                $tmpVal[] = (object)$this->objectToJson($entry, false);
+                            }
+                            $val = $tmpVal;
+                        } elseif (substr($type, -2) != '[]') {
+                            // Map the data recursive
+                            $val = (object)$this->objectToJson($val, false);
+                        }
+                        break;
                 }
             }
-            // Check the type of the field and set the val
-            switch (strtolower($type)) {
-                case 'int':
-                case 'integer':
-                    if (!is_int($val)) {
-                        throw new TypeMismatchException($type, gettype($val), $propertyName);
-                    }
-                    $val = (int)$val;
-                    break;
-                case 'float':
-                case 'double':
-                case 'real':
-                    if (!is_float($val)) {
-                        throw new TypeMismatchException($type, gettype($val), $propertyName);
-                    }
-                    $val = (double)$val;
-                    break;
-                case 'bool':
-                case 'boolean':
-                    if (!is_bool($val)) {
-                        throw new TypeMismatchException($type, gettype($val), $propertyName);
-                    }
-                    $val = (bool)$val;
-                    break;
-                case 'array':
-                    if (!is_array($val)) {
-                        throw new TypeMismatchException($type, gettype($val), $propertyName);
-                    }
-                    $val = (array)$val;
-                    break;
-                case 'string':
-                    if (!is_string($val)) {
-                        throw new TypeMismatchException($type, gettype($val), $propertyName);
-                    }
-                    $val = (string)$val;
-                    break;
-                case 'object':
-                    $tmpVal = $val;
-                    if (is_array($tmpVal) && array_keys($tmpVal) != range(0, count($tmpVal))) {
-                        $val = (object)$tmpVal;
-                    }
-                    if (!is_object($val)) {
-                        throw new TypeMismatchException($type, gettype($val), $propertyName);
-                    }
-                    $val = (object)$val;
-                    break;
-                case 'date':
-                case 'datetime':
-                    if ($val instanceof \DateTime === false) {
-                        throw new TypeMismatchException($type, gettype($val), $propertyName);
-                    }
 
-                    $format = 'Y-m-d\TH:i:s';
-                    if ($field instanceof DateTimeField && $field->format !== null) {
-                        $format = $field->format;
-                    }
-
-                    /** @var \DateTime $val */
-                    if (strtolower($format) !== 'timestamp') {
-                        $val = $val->format($format);
-                    } else {
-                        $val = $val->getTimestamp();
-                    }
-                    break;
-                default:
-                    // If none of the primitives above match it is an custom object
-
-                    // Check if it's an array of X
-                    if (substr($type, -2) == '[]' && is_array($val)) {
-                        $tmpVal = [];
-                        foreach ($val as $entry) {
-                            // Map the data recursive
-                            $tmpVal[] = (object)$this->objectToJson($entry, false);
-                        }
-                        $val = $tmpVal;
-                    } elseif (substr($type, -2) != '[]') {
-                        // Map the data recursive
-                        $val = (object)$this->objectToJson($val, false);
-                    }
-                    break;
+            if ($field->postTransformer !== null) {
+                $postTransformer = $field->postTransformer;
+                $val = $postTransformer::reverseTransform($val);
             }
 
             // Assign the JSON data to the object property
