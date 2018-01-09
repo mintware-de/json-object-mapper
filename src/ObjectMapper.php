@@ -338,11 +338,11 @@ class ObjectMapper
                 $val = $object->{'get' . $ucw}();
             }
 
-            if ($field->preTransformer !== null) {
-                $preTransformer = $field->preTransformer;
-                $val = $preTransformer::reverseTransform($val);
+            // Reverse order on encoding (postTransformer -> transformer -> preTransformer)
+            if ($field->postTransformer !== null) {
+                $postTransformer = $field->postTransformer;
+                $val = $postTransformer::reverseTransform($val);
             }
-
 
             if ($field->transformer !== null) {
                 $transformer = $field->transformer;
@@ -456,9 +456,9 @@ class ObjectMapper
                 }
             }
 
-            if ($field->postTransformer !== null) {
-                $postTransformer = $field->postTransformer;
-                $val = $postTransformer::reverseTransform($val);
+            if ($field->preTransformer !== null) {
+                $preTransformer = $field->preTransformer;
+                $val = $preTransformer::reverseTransform($val);
             }
 
             // Assign the JSON data to the object property

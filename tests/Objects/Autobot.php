@@ -22,13 +22,13 @@ class Autobot
 
     /**
      * @var string[]
-     * @JsonField(name="tags", type="array", transformer="\MintWare\Tests\JOM\Transformer\TagTransformer")
+     * @JsonField(name="tags", type="string", postTransformer="\MintWare\Tests\JOM\Transformer\TagTransformer")
      */
     public $tags;
 
     /**
      * @var
-     * @JsonField(name="series", type="string", transformer="\MintWare\Tests\JOM\Transformer\PaddingTransformer")
+     * @JsonField(name="series", type="string", preTransformer="\MintWare\Tests\JOM\Transformer\PaddingTransformer")
      */
     public $series;
 }
