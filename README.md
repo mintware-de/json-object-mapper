@@ -16,7 +16,7 @@ $ composer require mintware-de/json-object-mapper
 
 ## Usage
 
-Check out the [documentation](./docs/index.md)
+Check out the [documentation](./doc/index.md)
 
 ## Testing
 ```bash
