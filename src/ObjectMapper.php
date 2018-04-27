@@ -39,7 +39,9 @@ class ObjectMapper
         AnnotationRegistry::registerLoader('class_exists');
 
         // Set the annotation reader
-        $this->reader = new AnnotationReader(new DocParser());
+        $parser = new DocParser();
+        $parser->setIgnoreNotImportedAnnotations(true);
+        $this->reader = new AnnotationReader($parser);
     }
 
     /**
@@ -110,182 +112,190 @@ class ObjectMapper
         // Iterate over each class property to check if it's mapped
         foreach ($class->getProperties() as $property) {
 
-            // Extract the JsonField Annotation
+            // Extract the Annotations
+            $fields = $this->reader->getPropertyAnnotations($property);
+
             /** @var JsonField $field */
-            $field = $this->reader->getPropertyAnnotation($property, JsonField::class);
-
-            // Is it not defined, the property is not mapped
-            if (null === $field) {
-                continue;
-            }
-
-            // Check if the property is public accessible or has a setter / adder
-            $propertyName = $property->getName();
-            $ucw = ucwords($propertyName);
-            if (!$property->isPublic() && !($class->hasMethod('set' . $ucw) || $class->hasMethod('add' . $ucw))) {
-                throw new PropertyNotAccessibleException($propertyName);
-            }
-
-            // Check if the current property is defined in the JSON
-            if (isset($data[$field->name])) {
-                $val = null;
-
-                $types = explode('|', $field->type);
-                $typeKeys = array_keys($types);
-                $lastTypeKey = end($typeKeys);
-
-                if ($field->preTransformer !== null) {
-                    $preTransformer = $field->preTransformer;
-                    $data[$field->name] = $preTransformer::transform($data[$field->name]);
+            foreach ($fields as $field) {
+                if ($field instanceof JsonField == false) {
+                    continue;
                 }
 
-                if ($field->transformer !== null) {
-                    $transformer = $field->transformer;
-                    $val = $transformer::transform($data[$field->name]);
-                    $types = []; // Ignore type handler!
+                // Check if the property is public accessible or has a setter / adder
+                $propertyName = $property->getName();
+                $ucw = ucwords($propertyName);
+                if (!$property->isPublic() && !($class->hasMethod('set' . $ucw) || $class->hasMethod('add' . $ucw))) {
+                    throw new PropertyNotAccessibleException($propertyName);
                 }
 
-                foreach ($types as $typeKey => $type) {
-                    $isLastElement = ($typeKey == $lastTypeKey);
-                    // Check the type of the field and set the val
-                    switch (strtolower($type)) {
-                        case 'int':
-                        case 'integer':
-                            if (!is_int($data[$field->name])) {
-                                if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
-                                }
-                                break;
-                            }
-                            $val = (int)$data[$field->name];
-                            break;
-                        case 'float':
-                        case 'double':
-                        case 'real':
-                            if (!is_float($data[$field->name])) {
-                                if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
-                                }
-                                break;
-                            }
-                            $val = (double)$data[$field->name];
-                            break;
-                        case 'bool':
-                        case 'boolean':
-                            if (!is_bool($data[$field->name])) {
-                                if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
-                                }
-                                break;
-                            }
-                            $val = (bool)$data[$field->name];
-                            break;
-                        case 'array':
-                            if (!is_array($data[$field->name])) {
-                                if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
-                                }
-                                break;
-                            }
-                            $val = (array)$data[$field->name];
-                            break;
-                        case 'string':
-                            if (!is_string($data[$field->name])) {
-                                if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
-                                }
-                                break;
-                            }
-                            $val = (string)$data[$field->name];
-                            break;
-                        case 'object':
-                            $tmpVal = $data[$field->name];
-                            if (is_array($tmpVal) && array_keys($tmpVal) != range(0, count($tmpVal))) {
-                                $data[$field->name] = (object)$tmpVal;
-                            }
-                            if (!is_object($data[$field->name])) {
-                                if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
-                                }
-                                break;
-                            }
-                            $val = (object)$data[$field->name];
-                            break;
-                        case 'date':
-                        case 'datetime':
-                            // Accepts the following formats:
-                            // 2017-09-09
-                            // 2017-09-09 13:20:59
-                            // 2017-09-09T13:20:59
-                            // 2017-09-09T13:20:59.511
-                            // 2017-09-09T13:20:59.511Z
-                            // 2017-09-09T13:20:59-02:00
-                            $validPattern = '~^\d{4}-\d{2}-\d{2}((T|\s{1})\d{2}:\d{2}:\d{2}(\.\d{1,3}(Z|)|(\+|\-)\d{2}:\d{2}|)|)$~';
+                if ($field->name == null) {
+                    $field->name = $propertyName;
+                }
 
-                            $tmpVal = $data[$field->name];
-                            if (preg_match($validPattern, $tmpVal)) {
-                                $data[$field->name] = new \DateTime($tmpVal);
-                            } else {
-                                $casted = intval($tmpVal);
-                                if (is_numeric($tmpVal) || ($casted == $tmpVal && strlen($casted) == strlen($tmpVal))) {
-                                    $data[$field->name] = new \DateTime();
-                                    $data[$field->name]->setTimestamp($tmpVal);
-                                }
-                            }
+                // Check if the current property is defined in the JSON
+                if (isset($data[$field->name])) {
+                    $val = null;
 
-                            if ($data[$field->name] instanceof \DateTime === false) {
-                                if ($isLastElement) {
-                                    throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
+                    $types = explode('|', $field->type);
+                    $typeKeys = array_keys($types);
+                    $lastTypeKey = end($typeKeys);
+
+                    if ($field->preTransformer !== null) {
+                        $preTransformer = $field->preTransformer;
+                        $data[$field->name] = $preTransformer::transform($data[$field->name]);
+                    }
+
+                    if ($field->transformer !== null) {
+                        $transformer = $field->transformer;
+                        $val = $transformer::transform($data[$field->name]);
+                        $types = []; // Ignore type handler!
+                    }
+
+                    foreach ($types as $typeKey => $type) {
+                        $isLastElement = ($typeKey == $lastTypeKey);
+                        // Check the type of the field and set the val
+                        switch (strtolower($type)) {
+                            case 'int':
+                            case 'integer':
+                                if (!is_int($data[$field->name])) {
+                                    if ($isLastElement) {
+                                        throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
+                                    }
+                                    break;
                                 }
+                                $val = (int)$data[$field->name];
                                 break;
-                            }
+                            case 'float':
+                            case 'double':
+                            case 'real':
+                                if (!is_float($data[$field->name])) {
+                                    if ($isLastElement) {
+                                        throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
+                                    }
+                                    break;
+                                }
+                                $val = (double)$data[$field->name];
+                                break;
+                            case 'bool':
+                            case 'boolean':
+                                if (!is_bool($data[$field->name])) {
+                                    if ($isLastElement) {
+                                        throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
+                                    }
+                                    break;
+                                }
+                                $val = (bool)$data[$field->name];
+                                break;
+                            case 'array':
+                                if (!is_array($data[$field->name])) {
+                                    if ($isLastElement) {
+                                        throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
+                                    }
+                                    break;
+                                }
+                                $val = (array)$data[$field->name];
+                                break;
+                            case 'string':
+                                if (!is_string($data[$field->name])) {
+                                    if ($isLastElement) {
+                                        throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
+                                    }
+                                    break;
+                                }
+                                $val = (string)$data[$field->name];
+                                break;
+                            case 'object':
+                                $tmpVal = $data[$field->name];
+                                if (is_array($tmpVal) && array_keys($tmpVal) != range(0, count($tmpVal))) {
+                                    $data[$field->name] = (object)$tmpVal;
+                                }
+                                if (!is_object($data[$field->name])) {
+                                    if ($isLastElement) {
+                                        throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
+                                    }
+                                    break;
+                                }
+                                $val = (object)$data[$field->name];
+                                break;
+                            case 'date':
+                            case 'datetime':
+                                // Accepts the following formats:
+                                // 2017-09-09
+                                // 2017-09-09 13:20:59
+                                // 2017-09-09T13:20:59
+                                // 2017-09-09T13:20:59.511
+                                // 2017-09-09T13:20:59.511Z
+                                // 2017-09-09T13:20:59-02:00
+                                $validPattern = '~^\d{4}-\d{2}-\d{2}((T|\s{1})\d{2}:\d{2}:\d{2}(\.\d{1,3}(Z|)|(\+|\-)\d{2}:\d{2}|)|)$~';
 
-                            if (strtolower($type) == 'date') {
-                                $data[$field->name]->setTime(0, 0, 0);
-                            }
+                                $tmpVal = $data[$field->name];
+                                if (preg_match($validPattern, $tmpVal)) {
+                                    $data[$field->name] = new \DateTime($tmpVal);
+                                } else {
+                                    $casted = intval($tmpVal);
+                                    if (is_numeric($tmpVal) || ($casted == $tmpVal && strlen($casted) == strlen($tmpVal))) {
+                                        $data[$field->name] = new \DateTime();
+                                        $data[$field->name]->setTimestamp($tmpVal);
+                                    }
+                                }
 
-                            $val = $data[$field->name];
-                            break;
-                        default:
-                            // If none of the primitives above match it is an custom object
+                                if ($data[$field->name] instanceof \DateTime === false) {
+                                    if ($isLastElement) {
+                                        throw new TypeMismatchException($type, gettype($data[$field->name]), $field->name);
+                                    }
+                                    break;
+                                }
 
-                            // Check if it's an array of X
-                            if (substr($type, -2) == '[]' && is_array($data[$field->name])) {
-                                $t = substr($type, 0, -2);
-                                $val = [];
-                                foreach ($data[$field->name] as $entry) {
+                                if (strtolower($type) == 'date') {
+                                    $data[$field->name]->setTime(0, 0, 0);
+                                }
+
+                                $val = $data[$field->name];
+                                break;
+                            case '':
+                                $val = $data[$field->name];
+                                break;
+                            default:
+                                // If none of the primitives above match it is an custom object
+
+                                // Check if it's an array of X
+                                if (substr($type, -2) == '[]' && is_array($data[$field->name])) {
+                                    $t = substr($type, 0, -2);
+                                    $val = [];
+                                    foreach ($data[$field->name] as $entry) {
+                                        // Map the data recursive
+                                        $val[] = (object)$this->mapDataToObject($entry, $t);
+                                    }
+                                } elseif (substr($type, -2) != '[]') {
                                     // Map the data recursive
-                                    $val[] = (object)$this->mapDataToObject($entry, $t);
+                                    $val = (object)$this->mapDataToObject($data[$field->name], $type);
                                 }
-                            } elseif (substr($type, -2) != '[]') {
-                                // Map the data recursive
-                                $val = (object)$this->mapDataToObject($data[$field->name], $type);
-                            }
+                                break;
+                        }
+
+                        if ($field->postTransformer !== null) {
+                            $postTransformer = $field->postTransformer;
+                            $val = $postTransformer::transform($val);
+                        }
+
+                        if ($val !== null) {
                             break;
+                        }
                     }
 
-                    if ($field->postTransformer !== null) {
-                        $postTransformer = $field->postTransformer;
-                        $val = $postTransformer::transform($val);
-                    }
-
+                    // Assign the JSON data to the object property
                     if ($val !== null) {
-                        break;
-                    }
-                }
-
-                // Assign the JSON data to the object property
-                if ($val !== null) {
-                    // If the property is public accessible, set the value directly
-                    if ($property->isPublic()) {
-                        $object->{$propertyName} = $val;
-                    } else {
-                        // If not, use the setter / adder
-                        $ucw = ucwords($propertyName);
-                        if ($class->hasMethod($method = 'set' . $ucw)) {
-                            $object->$method($val);
-                        } elseif ($class->hasMethod($method = 'add' . $ucw)) {
-                            $object->$method($val);
+                        // If the property is public accessible, set the value directly
+                        if ($property->isPublic()) {
+                            $object->{$propertyName} = $val;
+                        } else {
+                            // If not, use the setter / adder
+                            $ucw = ucwords($propertyName);
+                            if ($class->hasMethod($method = 'set' . $ucw)) {
+                                $object->$method($val);
+                            } elseif ($class->hasMethod($method = 'add' . $ucw)) {
+                                $object->$method($val);
+                            }
                         }
                     }
                 }

@@ -20,6 +20,7 @@ use MintWare\Tests\JOM\Objects\Autobot;
 use MintWare\Tests\JOM\Objects\Person;
 use MintWare\Tests\JOM\Objects\PersonWithEscapedFQCN;
 use MintWare\Tests\JOM\Objects\PersonWithMultipleAddresses;
+use MintWare\Tests\JOM\Objects\SimplePerson;
 use PHPUnit\Framework\TestCase;
 
 class ObjectMapperTest extends TestCase
@@ -389,5 +390,53 @@ class ObjectMapperTest extends TestCase
 }
 JSON;
         $this->assertEquals($reversedJson, $mapper->objectToJson($autobot));
+    }
+
+    public function testMapDataToObjectWithAlternativeName()
+    {
+        $mapper = new ObjectMapper();
+        $data = json_decode(file_get_contents(__DIR__ . '/res/person_field_variation.json'), true);
+
+        /** @var Person $person */
+        $person = $mapper->mapDataToObject($data, Person::class);
+        $this->assertSame('Pete', $person->name);
+        $this->assertSame('Peterson', $person->surname);
+        $this->assertSame(28, $person->age);
+        $this->assertSame(1.72, $person->height);
+        $this->assertTrue($person->isCool);
+        $this->assertSame(['Pepe', 'Pete'], $person->nicknames);
+        $this->assertEquals((object)['hello' => 'Hi', 'bye' => 'Ciao!'], $person->dictionary);
+        $this->assertEquals(strtotime('2017-03-08T09:41:00'), $person->created->getTimestamp());
+        $this->assertEquals(strtotime('9.9.2017 00:00:00'), $person->updated->getTimestamp());
+        $this->assertEquals(strtotime('10.9.2017 00:00:00'), $person->deleted->getTimestamp());
+        $address = new Address();
+        $address->street = 'Mainstreet 22a';
+        $address->zipCode = 'A-12345';
+        $address->town = 'Best Town';
+        $address->country = 'Germany';
+        $this->assertEquals($address, $person->address);
+    }
+
+    public function testMapDataToObjectWithoutNaming()
+    {
+        $mapper = new ObjectMapper();
+        $data = json_decode(file_get_contents(__DIR__ . '/res/person.json'), true);
+
+        /** @var SimplePerson $person */
+        $person = $mapper->mapDataToObject($data, SimplePerson::class);
+        $this->assertSame('Pete', $person->firstname);
+        $this->assertSame('Peterson', $person->surname);
+        $this->assertSame(28, $person->age);
+        $this->assertSame(1.72, $person->height);
+        $this->assertTrue($person->is_cool);
+        $this->assertSame(['Pepe', 'Pete'], $person->nicknames);
+        $this->assertEquals(['hello' => 'Hi', 'bye' => 'Ciao!'], $person->dictionary);
+        $address = [
+            'street' => 'Mainstreet 22a',
+            'town' => 'Best Town',
+            'country' => 'Germany',
+            'zip_code' => 'A-12345',
+        ];
+        $this->assertEquals($address, $person->address);
     }
 }

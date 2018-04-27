@@ -20,7 +20,11 @@ class Person
     /** @MintWare\JOM\JsonField(name="firstname", type="string") */
     public $name;
 
-    /** @MintWare\JOM\JsonField(name="surname", type="string") */
+    /**
+     * @MintWare\JOM\JsonField(name="sur_name", type="string")
+     * @MintWare\JOM\JsonField(name="surname", type="string")
+     * @MintWare\Tests\JOM\Objects\OtherAnnotation()
+     */
     public $surname;
 
     /** @MintWare\JOM\JsonField(name="age", type="int") */
