@@ -1,4 +1,4 @@
-# v1.1.4 
+# v1.2.0 
 - Added support for multiple `@JsonField`-Annotations to support multiple, different property names
 - Simple mapping method added. You only need to add `@JsonField()` if the property in json and the class property equals
 
