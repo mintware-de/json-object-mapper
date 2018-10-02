@@ -21,7 +21,7 @@ interface TransformerInterface
     public static function transform($data);
 
     /**
-     * Reversetransform the data
+     * Reverse transform the data
      *
      * @param mixed $data The transformed data
      * @return mixed The reverse transformed data

@@ -15,5 +15,4 @@ namespace MintWare\Tests\JOM\Objects;
  */
 class OtherAnnotation
 {
-
 }
