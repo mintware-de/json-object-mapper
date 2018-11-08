@@ -321,7 +321,7 @@ class ObjectMapper
                         $format = $field->format;
                     }
                     $val = $this->castType($val, $type, $propertyName, $format);
-                } else {
+                } elseif ($type != null) {
                     // Check if it's an array of X
                     if (substr($type, -2) == '[]' && is_array($val)) {
                         $tmpVal = [];

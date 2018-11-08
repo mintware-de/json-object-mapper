@@ -265,6 +265,18 @@ class ObjectMapperTest extends TestCase
     }
 
 
+    public function testObjectToJsonBasic()
+    {
+        $mapper = new ObjectMapper();
+        $json = file_get_contents(__DIR__ . '/res/person.json');
+
+        $personOld = $mapper->mapJson($json, SimplePerson::class);
+        $reversedJson = $mapper->objectToJson($personOld);
+        $personNew = $mapper->mapJson($reversedJson, SimplePerson::class);
+
+        $this->assertEquals($personOld, $personNew);
+    }
+
     public function testObjectToJson()
     {
         $mapper = new ObjectMapper();
