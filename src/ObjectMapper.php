@@ -275,6 +275,10 @@ class ObjectMapper
                 throw new PropertyNotAccessibleException($propertyName);
             }
 
+            if ($field->name == null) {
+                $field->name = $propertyName;
+            }
+
             $val = null;
             if ($property->isPublic()) {
                 $val = $object->{$propertyName};
