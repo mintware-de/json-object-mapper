@@ -11,8 +11,8 @@
 namespace MintWare\Tests\JOM;
 
 use MintWare\JOM\Exception\ClassNotFoundException;
-use MintWare\JOM\Exception\InvalidJsonException;
 use MintWare\JOM\Exception\PropertyNotAccessibleException;
+use MintWare\JOM\Exception\SerializerException;
 use MintWare\JOM\Exception\TypeMismatchException;
 use MintWare\JOM\ObjectMapper;
 use MintWare\Tests\JOM\Objects\Address;
@@ -34,8 +34,8 @@ class ObjectMapperTest extends TestCase
     public function testMapJsonFailsInvalidJson()
     {
         $mapper = new ObjectMapper();
-        $this->expectException(InvalidJsonException::class);
-        $this->expectExceptionMessage('The JSON is not valid.');
+        $this->expectException(SerializerException::class);
+        $this->expectExceptionMessage('Deserialize failed: The JSON is not valid.');
         $mapper->mapJson('{"foo', null);
     }
 

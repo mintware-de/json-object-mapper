@@ -14,9 +14,11 @@ use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
 use Doctrine\Common\Annotations\DocParser;
 use MintWare\JOM\Exception\ClassNotFoundException;
-use MintWare\JOM\Exception\InvalidJsonException;
 use MintWare\JOM\Exception\PropertyNotAccessibleException;
+use MintWare\JOM\Exception\SerializerException;
 use MintWare\JOM\Exception\TypeMismatchException;
+use MintWare\JOM\Serializer\JsonSerializer;
+use MintWare\JOM\Serializer\SerializerInterface;
 
 /**
  * This class is the object mapper
@@ -29,6 +31,9 @@ class ObjectMapper
 {
     /** @var AnnotationReader */
     protected $reader = null;
+
+    /** @var SerializerInterface */
+    private $serializer = null;
 
     private $primitives = [
         'int', 'integer',
@@ -46,6 +51,8 @@ class ObjectMapper
      */
     public function __construct()
     {
+        $this->serializer = new JsonSerializer();
+
         // Symfony does this also.. ;-)
         AnnotationRegistry::registerLoader('class_exists');
 
@@ -60,24 +67,26 @@ class ObjectMapper
     }
 
     /**
-     * Maps a JSON string to a object
+     * Maps raw data to a object
      *
-     * @param string $json The JSON string
+     * @param string $rawData The raw data
      * @param string $targetClass The target object class
      *
      * @return mixed The mapped object
      *
-     * @throws InvalidJsonException If the JSON is not valid
+     * @throws SerializerException If the data couldn't be deserialized
      * @throws ClassNotFoundException If the target class does not exist
      * @throws PropertyNotAccessibleException If the class property has no public access an no set-Method
      * @throws TypeMismatchException If The type in the JSON does not match the type in the class
      * @throws \ReflectionException If the target class does not exist
      */
-    public function mapJson($json, $targetClass)
+    public function mapJson($rawData, $targetClass)
     {
-        // Check if the JSON is valid
-        if (!is_array($data = json_decode($json, true))) {
-            throw new InvalidJsonException();
+        // Deserialize the data
+        try {
+            $data = $this->serializer->deserialize($rawData);
+        } catch (\Exception $e) {
+            throw new SerializerException('Deserialize failed: ' . $e->getMessage(), 0, $e);
         }
 
         // Pre initialize the result
