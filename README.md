@@ -5,6 +5,27 @@
 
 # JOM - JSON Object Mapper
 
+
+⚠️ **Package is abandoned** ⚠️  
+This package is not maintained anymore.  
+Consider to use the new package [`mintware-de/data-model-mapper`](https://github.com/mintware-de/data-model-mapper) and read the [Upgrade Guide](https://github.com/mintware-de/data-model-mapper/blob/master/UPGRADE_LEGACY.md).  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+.  
+
 JOM is a powerful object mapper which maps JSON Data into PHP objects.
 
 ## Installation
